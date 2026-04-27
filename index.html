@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<title>Cronos Video Ultra 9.1</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #050505; --card: #121212; --gold: #d4af37;
+            --accent: #dc3545; --text: #fff; --header-height: 65px;
+        }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; overflow-x: hidden; }
+        
+        #main-header { 
+            background: rgba(0,0,0,0.95); border-bottom: 2px solid var(--accent);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; position: fixed; top: 0; width: 100%; height: var(--header-height);
+            z-index: 1000; box-sizing: border-box;
+        }
+        .logo { font-weight: 800; text-transform: uppercase; cursor: pointer; color: #fff; text-decoration: none; }
+        .logo span { color: var(--accent); }
+        .btn-nav { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; }
+
+        #search-area { margin-top: var(--header-height); padding: 15px; background: #111; border-bottom: 1px solid #333; }
+        .search-box { display: flex; gap: 8px; width: 100%; max-width: 800px; margin: 0 auto; }
+        input { flex: 1; padding: 12px; background: #000; border: 1px solid #333; color: #fff; border-radius: 4px; outline: none; }
+        .btn-search { background: var(--accent); border: none; color: #fff; padding: 0 20px; border-radius: 4px; cursor: pointer; }
+
+        .alphabet-filter { display: flex; justify-content: space-between; max-width: 800px; margin: 12px auto 0 auto; padding: 0; box-sizing: border-box; }
+        .btn-letter { background: #222; color: #888; border: 1px solid #333; flex: 1; margin: 0 1px; padding: 5px 0; font-size: 10px; border-radius: 3px; cursor: pointer; font-weight: bold; text-align: center; }
+        .btn-letter:hover, .btn-letter.active { background: var(--gold); color: #000; border-color: var(--gold); }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-top: 40px; margin-bottom: 15px; border-left: 4px solid var(--gold); padding-left: 12px; }
+        .section-title { font-size: 16px; font-weight: bold; text-transform: uppercase; margin: 0; }
+        
+        .grid-obras { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 15px; }
+        .card { background: var(--card); border: 1px solid #222; border-radius: 6px; overflow: hidden; cursor: pointer; transition: 0.3s; position: relative; }
+        .card:hover { border-color: var(--gold); transform: translateY(-4px); }
+        .card-img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #222; }
+        .card-title { padding: 8px; font-size: 10px; font-weight: bold; text-align: center; height: 28px; overflow: hidden; }
+        .badge { position: absolute; top: 5px; right: 5px; font-size: 8px; padding: 2px 5px; border-radius: 3px; font-weight: bold; }
+
+        .btn-load-more { display: none; width: 250px; margin: 40px auto; padding: 15px; background: #111; border: 1px solid var(--gold); color: var(--gold); border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; text-align: center; }
+        .btn-load-more.loading { opacity: 0.5; cursor: wait; border-color: #555; color: #555; }
+
+        #video-viewer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; flex-direction: column; }
+        .viewer-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #111; }
+        iframe { flex: 1; border: none; width: 100%; height: 100%; }
+        
+        #details-view { display: none; margin-top: 20px; }
+        #status-msg { text-align: center; color: var(--gold); font-size: 11px; padding: 5px; }
+    </style>
+</head>
+<body>
+
+    <header id="main-header">
+        <div class="logo" onclick="location.reload()">CRONOS <span>VIDEO</span></div>
+<div style="display:flex; gap:8px;">
+            <button class="btn-nav" onclick="tipoDeMidia='filmes'; carregarArquivo('https://www.boraflix.click/filmes/', 'CATÁLOGO DE FILMES')">FILMES</button>
+            <button class="btn-nav" onclick="tipoDeMidia='series'; carregarArquivo('https://www.boraflix.click/series/', 'CATÁLOGO DE SÉRIES')">SÉRIES</button>
+        </div>
+    </header>
+
+<div id="search-area">
+        <div class="search-box">
+            <input type="text" id="urlInput" placeholder="Busque pelo nome ou cole o link...">
+            <button class="btn-search" onclick="iniciarBusca()"><i class="fas fa-search"></i></button>
+        </div>
+        <div id="status-msg">Conectado</div>
+    </div>
+
+    <div class="container" id="home-view">
+        <div id="section-featured">
+            <div class="section-header"><h3 class="section-title">⭐ Lançamentos em Destaque</h3></div>
+            <div class="grid-obras" id="grid-featured"></div>
+        </div>
+        <div id="section-series">
+            <div class="section-header"><h3 class="section-title">📺 Séries Adicionadas</h3></div>
+            <div class="grid-obras" id="grid-series"></div>
+        </div>
+        <div id="section-movies">
+            <div class="section-header"><h3 class="section-title">🎬 Filmes Adicionados</h3></div>
+            <div class="grid-obras" id="grid-movies"></div>
+        </div>
+        <div id="section-episodes">
+            <div class="section-header"><h3 class="section-title">🆕 Últimos Episódios</h3></div>
+            <div class="grid-obras" id="grid-episodes"></div>
+        </div>
+    </div>
+
+    <div class="container" id="archive-view" style="display:none;">
+        <div class="section-header"><h3 id="archive-title" class="section-title">CATÁLOGO</h3></div>
+        <div id="grid-archive" class="grid-obras"></div>
+        <div id="btn-load-more" class="btn-load-more" onclick="carregarProximaPagina()">CARREGAR MAIS ITENS</div>
+    </div>
+
+    <div class="container" id="details-view"></div>
+
+<div id="video-viewer">
+        <div class="viewer-header">
+            <span style="color:var(--gold); font-weight:bold;">MODO CINEMA</span>
+            <button style="background:var(--accent); color:#fff; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;" onclick="fecharPlayer()">✕ FECHAR VÍDEO</button>
+        </div>
+        <iframe id="video-frame" allowfullscreen></iframe>
+        <video id="meuPlayer" controls style="display:none; width:100%; height:100%; outline:none; background:#000;"></video>
+    </div>
+
+    <script>
+const proxies = [
+            // 🚀 PRIORIDADE 1: Seu Cloudflare Worker (Muito mais rápido e sem limites)
+            'https://fragrant-unit-a421.dadsondankstry.workers.dev/?url=', 
+            
+            // 🚀 PRIORIDADE 2: O corsproxy que você também usava na 2.0
+            'https://corsproxy.io/?',
+            
+            // 🛡️ PLANO C e D: Só vão ser chamados se os seus dois principais caírem
+            'https://api.allorigins.win/raw?url=', 
+            'https://api.codetabs.com/v1/proxy?quest='
+        ];
+        let linksVistos = new Set();
+        let proximaPaginaURL = "";
+		let tipoDeMidia = "filmes";
+
+window.onload = () => { 
+            carregarHome(); 
+            // Escuta a tecla ENTER no campo de busca
+            document.getElementById('urlInput').addEventListener('keypress', function(e) {
+                if(e.key === 'Enter') iniciarBusca();
+            });
+        };
+
+        function montarABC() {
+            const abc = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+            let html = abc.map(l => `<button class="btn-letter" id="btn-L-${l}" onclick="filtrarLetra('${l}')">${l}</button>`).join("");
+            document.getElementById('abc-container').innerHTML = html;
+        }
+
+        async function fetchAPI(url) {
+            for (let p of proxies) {
+                try {
+                    let res = await fetch(p + encodeURIComponent(url));
+                    if (res.ok) return await res.text();
+                } catch(e) {}
+            }
+            return null; // Retorna nulo se tudo falhar
+        }
+
+        async function carregarHome() {
+            let html = await fetchAPI('https://www.boraflix.click/');
+            if (!html) {
+                document.getElementById('status-msg').innerText = "❌ Erro ao conectar no servidor BoraFlix.";
+                return;
+            }
+            let doc = new DOMParser().parseFromString(html, "text/html");
+            linksVistos.clear();
+            mapearGrid(doc, '#featured-titles article', 'grid-featured');
+            mapearGrid(doc, '#dt-tvshows article', 'grid-series');
+            mapearGrid(doc, '#dt-movies article', 'grid-movies');
+            mapearGrid(doc, '#dt-episodes article', 'grid-episodes', 'EP');
+        }
+
+        function mapearGrid(doc, seletor, gridId, label = null, append = false) {
+            let items = doc.querySelectorAll(seletor);
+            let html = "";
+            items.forEach(el => {
+                let a = el.querySelector('a');
+                let img = el.querySelector('img');
+                if (a && img && !linksVistos.has(a.href)) {
+                    linksVistos.add(a.href);
+                    let capa = img.dataset.src || img.dataset.lazySrc || img.src;
+                    let isSerie = a.href.includes('/series/');
+                    let tag = label || (isSerie ? 'SÉRIE' : 'FILME');
+                    let cor = tag === 'EP' ? '#28a745' : (isSerie ? '#dc3545' : '#007bff');
+                    html += `<div class="card" onclick="abrirObra('${a.href}')"><span class="badge" style="background:${cor}">${tag}</span><img class="card-img" src="${capa}" onerror="this.src='https://via.placeholder.com/150x220/22/222?text=Capa'"><div class="card-title">${img.alt}</div></div>`;
+                }
+            });
+            const grid = document.getElementById(gridId);
+            if(append) grid.innerHTML += html; else grid.innerHTML = html;
+        }
+
+        async function carregarArquivo(url, titulo, append = false) {
+            const btn = document.getElementById('btn-load-more');
+            if(!append) {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+                document.getElementById('home-view').style.display = 'none';
+                document.getElementById('details-view').style.display = 'none';
+                document.getElementById('archive-view').style.display = 'block';
+                document.getElementById('archive-title').innerText = titulo;
+                document.getElementById('grid-archive').innerHTML = "<h4 style='text-align:center; width:100%; color:var(--gold)'>⏳ BUSCANDO CATÁLOGO...</h4>";
+                linksVistos.clear();
+            } else {
+                btn.innerText = "⏳ CARREGANDO...";
+                btn.classList.add('loading');
+            }
+            
+            let html = await fetchAPI(url);
+            if (!html) {
+                document.getElementById('grid-archive').innerHTML = "<h4 style='text-align:center; width:100%; color:red'>❌ Falha na conexão. Tente novamente.</h4>";
+                btn.style.display = 'none';
+                return;
+            }
+
+            let doc = new DOMParser().parseFromString(html, "text/html");
+            
+            let nextLink = doc.querySelector('link[rel="next"]');
+            proximaPaginaURL = nextLink ? nextLink.href : "";
+            
+            btn.style.display = proximaPaginaURL ? 'block' : 'none';
+            btn.innerText = "CARREGAR MAIS ITENS";
+            btn.classList.remove('loading');
+
+            mapearGrid(doc, '.items.normal article, article.item, .result-item', 'grid-archive', null, append);
+        }
+
+        function carregarProximaPagina() {
+            if(proximaPaginaURL) carregarArquivo(proximaPaginaURL, document.getElementById('archive-title').innerText, true);
+        }
+
+function filtrarLetra(l) {
+            document.querySelectorAll('.btn-letter').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-L-${l}`).classList.add('active');
+            
+            // Para acessar as pastas do WordPress, a letra precisa ser minúscula
+            let t = l === "#" ? "09" : l.toLowerCase();
+            document.getElementById(`btn-L-${l}`).innerText = "⏳";
+            
+            let nomeSecao = tipoDeMidia === 'series' ? 'SÉRIES' : 'FILMES';
+            
+            // Forçamos o caminho nativo de taxonomia do tema (sem o ?letter=)
+            carregarArquivo(`https://www.boraflix.click/letter/${t}/`, `${nomeSecao} - LETRA ${l}`).then(() => {
+                document.getElementById(`btn-L-${l}`).innerText = l;
+            });
+        }
+// ==========================================
+        // LÓGICA DE SÉRIES E TEMPORADAS - BLINDADA CONTRA ERRO
+        // ==========================================
+        
+        // 1. FUNÇÃO DA SANFONA DE EPISÓDIOS
+        async function abrirObra(url) {
+            document.getElementById('home-view').style.display = 'none';
+            document.getElementById('archive-view').style.display = 'none';
+            const details = document.getElementById('details-view');
+            details.style.display = 'block';
+            details.innerHTML = "<h3 style='text-align:center; color:var(--gold)'>⏳ Carregando episódios...</h3>";
+            
+            let html = await fetchAPI(url);
+            if (!html) {
+                details.innerHTML = "<h3 style='text-align:center'>❌ Erro. Tente de novo.</h3><button class='btn-load-more' style='display:block; width:100%; margin-top:20px;' onclick='location.reload()'>VOLTAR</button>";
+                return;
+            }
+
+            let doc = new DOMParser().parseFromString(html, "text/html");
+            let nome = doc.querySelector('h1') ? doc.querySelector('h1').innerText : "Assistir";
+
+            if (url.includes('/series/') || url.includes('/episodios/')) {
+                let linksEps = Array.from(doc.querySelectorAll('a')).filter(a => a.href.includes('/episodios/'));
+                let temporadas = {};
+
+                linksEps.forEach(a => {
+                    let slug = a.href.split('/episodios/')[1];
+                    if(!slug) return;
+                    let match = slug.match(/-(\d+)x(\d+)/);
+                    let numTemp = match ? match[1] : "1";
+                    let numEpMatches = slug.match(/-(\d+)/);
+                    let numEp = match ? match[2] : (numEpMatches ? numEpMatches[1] : "1");
+
+                    if (!temporadas[numTemp]) temporadas[numTemp] = [];
+                    temporadas[numTemp].push({ url: a.href, label: "Episódio " + numEp });
+                });
+
+                let resHTML = `<h2 style="color:var(--gold); text-align:center; margin-bottom:20px;">${nome}</h2>`;
+                
+Object.keys(temporadas).sort((a,b)=>a-b).forEach(t => {
+                    // Monta os episódios primeiro, sem usar crases repetidas para não bugar o editor
+                    let episodiosHTML = temporadas[t].map(e => {
+                        return "<div class='ep-item' onclick=\"darPlay('" + e.url + "')\" style='background:#1a1a1a; padding:12px; border-radius:4px; cursor:pointer; border:1px solid #252525; display:flex; justify-content:space-between;'><span>" + e.label + "</span><span style='color:var(--accent); font-weight:bold;'>PLAY ▶</span></div>";
+                    }).join('');
+
+                    // Injeta os episódios prontos no HTML
+                    resHTML += `
+                        <div style="background:#111; border:1px solid #333; border-radius:6px; margin-bottom:10px;">
+                            <div onclick="toggleTemp('${t}')" style="background:#222; padding:15px; cursor:pointer; color:var(--gold); font-weight:bold; text-align:center;">📺 TEMPORADA ${t}</div>
+                            <div id="box-temp-${t}" style="display:none; flex-direction:column; gap:5px; padding:10px;">
+                                ${episodiosHTML}
+                            </div>
+                        </div>`;
+                });
+
+                details.innerHTML = resHTML + `<button class="btn-load-more" style="display:block; width:100%; margin-top:20px;" onclick="location.reload()">VOLTAR</button>`;
+            } else { 
+                darPlay(url); 
+            }
+        }
+
+        // 2. FUNÇÃO DE PLAYER (Lógica 2.0 unida com a extração de iframe)
+// 2. FUNÇÃO DE PLAYER (Motor Aranha da versão 2.0 trazido para a 9.1)
+// 2. FUNÇÃO DE PLAYER (Motor Aranha da versão 2.0 trazido para a 9.1)
+        async function darPlay(url) {
+            // Mostra o viewer e limpa o frame anterior
+            document.getElementById('details-view').style.display = 'none';
+            document.getElementById('video-viewer').style.display = 'flex';
+            document.getElementById('video-frame').src = ""; 
+
+            let html = await fetchAPI(url);
+            if (!html) { 
+                alert("Erro ao conectar com o servidor do episódio."); 
+                fecharPlayer();
+                return; 
+            }
+
+            let linksDeVideo = [];
+
+            // 1. EXTRAÇÃO DO LINK ORIGINAL (Captura o que viste nas fotos do código-fonte)
+            // Tenta o método AJAX do DooPlay (data-post e data-nume)
+            const postMatch = html.match(/data-post=["'](\d+)["']/);
+            const numeMatch = html.match(/data-nume=["'](\d+)["']/);
+            const typeMatch = html.match(/data-type=["'](tv|movie)["']/);
+
+            if (postMatch && numeMatch) {
+                let ajaxUrl = `https://www.boraflix.click/wp-admin/admin-ajax.php?action=doo_player_ajax&post=${postMatch[1]}&nume=${numeMatch[1]}&type=${typeMatch ? typeMatch[1] : 'tv'}`;
+                let ajaxHtml = await fetchAPI(ajaxUrl);
+                if (ajaxHtml) {
+                    const iframeMatch = ajaxHtml.match(/src=["']([^"']+)["']/i);
+                    if (iframeMatch) linksDeVideo.push(iframeMatch[1]);
+                }
+            }
+
+            // 2. BUSCA PADRÃO DE IFRAMES
+            const iframeRegex = /<iframe[^>]+src=["']([^"']+)["']/gi;
+            let match;
+            while ((match = iframeRegex.exec(html)) !== null) {
+                if (!match[1].includes('google') && !match[1].includes('ads')) {
+                    linksDeVideo.push(match[1]);
+                }
+            }
+
+            // Seleciona o primeiro link válido encontrado
+            let finalSrc = linksDeVideo.find(l => l.includes('http'));
+
+            if (finalSrc) {
+                let linkFinal = finalSrc.replace(/\\/g, "").replace(/['"]/g, "");
+
+                // O conversor para vidsrc.me foi removido daqui para manter o vídeo em Português (Superflix / Superembeds)
+
+                // Carrega o vídeo no teu iframe
+                document.getElementById('video-frame').src = linkFinal;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                alert("Não foi possível extrair o vídeo deste servidor.");
+                fecharPlayer();
+            }
+        }
+
+        // 4. FUNÇÃO DA SANFONA
+        function toggleTemp(id) {
+            let el = document.getElementById(`box-temp-${id}`);
+            el.style.display = el.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+function iniciarBusca() {
+            let t = document.getElementById('urlInput').value.trim();
+            if(!t) return;
+            
+            if(t.startsWith('http')) {
+                // Ao colar o link completo, ele raspa a página e mostra todas as obras
+                carregarArquivo(t, 'RESULTADOS DO LINK');
+            } else {
+                // Se digitar apenas o nome, ele faz a busca padrão
+                carregarArquivo(`https://www.boraflix.click/?s=${encodeURIComponent(t)}`, `BUSCA: ${t.toUpperCase()}`);
+            }
+        }
+// ESCUTA OS LINKS VINDOS DA EXTENSÃO (A armadilha)
+window.addEventListener("message", function(event) {
+    if (event.data && event.data.type === "CRONOS_LINK_VIDEO") {
+        let linkRecebido = event.data.url;
+        
+        // Aparece o botão de Download verde
+        document.getElementById('status-msg').innerHTML = `✅ Link Capturado: <button onclick="baixarAgora('${linkRecebido}')" style="background:green; color:white; border:none; padding:2px 10px; cursor:pointer; border-radius:3px;">📥 DOWNLOAD</button>`;
+        
+        // Abre o modo cinema
+        document.getElementById('video-viewer').style.display = 'flex';
+        
+        let frame = document.getElementById('video-frame');
+        let player = document.getElementById('meuPlayer');
+        
+        // Lógica de Ouro: Verifica se é link direto (.m3u8/.mp4) ou link de site
+        if (linkRecebido.includes('.m3u8') || linkRecebido.includes('.mp4')) {
+            frame.style.display = 'none'; // Esconde o iframe
+            player.style.display = 'block'; // Mostra o player real
+            
+            if (Hls.isSupported() && linkRecebido.includes('.m3u8')) {
+                const hls = new Hls();
+                hls.loadSource(linkRecebido);
+                hls.attachMedia(player);
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    player.play();
+                });
+            } else {
+                player.src = linkRecebido;
+                player.play();
+            }
+        } else {
+            // Se for iframe de outro site, usa o iframe normal
+            player.style.display = 'none';
+            player.pause();
+            frame.style.display = 'block';
+            frame.src = linkRecebido;
+        }
+    }
+});
+
+function baixarAgora(url) {
+    chrome.runtime.sendMessage({ action: "baixarVideo", url: url });
+}
+
+function fecharPlayer() { 
+    // Limpa o iframe
+    document.getElementById('video-frame').src = ""; 
+    // Pausa e limpa o player de vídeo real
+    let player = document.getElementById('meuPlayer');
+    player.pause();
+    player.src = "";
+    
+    document.getElementById('video-viewer').style.display = 'none'; 
+    document.getElementById('details-view').style.display = 'block'; 
+}
+    </script>
+</body>
+</html>
